@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1a2e1a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Mapeo Biocultural Territorial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    :root {
+      --forest: #1a2e1a;
+      --moss: #2d4a2d;
+      --leaf: #4a7c4a;
+      --sage: #7aab5a;
+      --lime: #a8d45a;
+      --earth: #8b6914;
+      --clay: #c4943a;
+      --sand: #e8d4a0;
+      --cream: #f5eedc;
+      --bark: #3d2b1a;
+      --stone: #5a5a4a;
+      --mist: #d4e0c8;
+      --water: #2a5a7a;
+      --sky: #5a9ab5;
+      --accent: #e8541a;
+      --gold: #d4a017;
+      --white: #faf7f2;
+      --shadow: rgba(10,20,10,0.4);
+      --r: 12px;
+      --r-sm: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Source Sans 3', sans-serif;
+      background: var(--forest);
+      color: var(--cream);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    #root { min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--moss); }
+    ::-webkit-scrollbar-thumb { background: var(--sage); border-radius: 2px; }
+
+    /* Animations */
+    @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes pulse { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.15); opacity:.7; } }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    @keyframes ripple { from { transform:scale(0); opacity:.5; } to { transform:scale(4); opacity:0; } }
+    @keyframes slideIn { from { transform:translateX(-100%); } to { transform:translateX(0); } }
+    @keyframes mapPulse { 0%,100% { box-shadow:0 0 0 0 rgba(168,212,90,0.4); } 50% { box-shadow:0 0 0 12px rgba(168,212,90,0); } }
+    @keyframes glow { 0%,100% { filter: drop-shadow(0 0 4px var(--lime)); } 50% { filter: drop-shadow(0 0 12px var(--lime)); } }
+
+    .fade-up { animation: fadeUp .4s ease forwards; }
+    .pulse-dot { animation: pulse 2s ease-in-out infinite; }
+    .spinning { animation: spin 1s linear infinite; }
+
+    /* Typography */
+    h1, h2, h3 { font-family: 'Playfair Display', serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Layout containers */
+    .app-shell {
+      display: flex; flex-direction: column; min-height: 100vh;
+      max-width: 480px; margin: 0 auto;
+      background: linear-gradient(180deg, var(--forest) 0%, #0f1f0f 100%);
+      position: relative; overflow: hidden;
+    }
+
+    /* Top bar */
+    .topbar {
+      background: linear-gradient(135deg, var(--forest) 0%, var(--moss) 100%);
+      border-bottom: 1px solid rgba(122,171,90,.3);
+      padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+    .topbar-logo {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--sage), var(--lime));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .logo-text { font-family: 'Playfair Display', serif; font-size: 13px; font-weight: 700; color: var(--lime); line-height: 1.2; }
+    .logo-sub { font-size: 10px; color: var(--mist); font-weight: 300; }
+    .topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+    /* Buttons */
+    .btn {
+      border: none; cursor: pointer; border-radius: var(--r-sm);
+      font-family: 'Source Sans 3', sans-serif; font-weight: 600;
+      transition: all .2s ease; position: relative; overflow: hidden;
+    }
+    .btn::after {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(255,255,255,.1); opacity: 0;
+      transition: opacity .2s;
+    }
+    .btn:active::after { opacity: 1; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--leaf), var(--sage));
+      color: var(--white); padding: 10px 20px; font-size: 14px;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(122,171,90,.4); }
+    .btn-accent {
+      background: linear-gradient(135deg, var(--accent), #c43a0e);
+      color: var(--white); padding: 10px 20px; font-size: 14px;
+    }
+    .btn-ghost {
+      background: rgba(255,255,255,.08); color: var(--cream);
+      padding: 8px 14px; font-size: 13px; border: 1px solid rgba(255,255,255,.12);
+    }
+    .btn-icon {
+      background: rgba(122,171,90,.15); color: var(--lime);
+      width: 38px; height: 38px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; border: 1px solid rgba(122,171,90,.25);
+    }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-lg { padding: 14px 28px; font-size: 16px; border-radius: var(--r); }
+    .btn-full { width: 100%; }
+    .btn-danger { background: linear-gradient(135deg, #c43a2a, #8b2015); color: var(--white); padding: 8px 14px; font-size: 13px; }
+
+    /* Cards */
+    .card {
+      background: linear-gradient(145deg, rgba(45,74,45,.8), rgba(26,46,26,.9));
+      border: 1px solid rgba(122,171,90,.2);
+      border-radius: var(--r); padding: 16px;
+      backdrop-filter: blur(8px);
+    }
+    .card-elevated {
+      background: linear-gradient(145deg, rgba(61,93,61,.9), rgba(45,74,45,.95));
+      box-shadow: 0 8px 32px var(--shadow), 0 2px 8px rgba(0,0,0,.3);
+    }
+
+    /* Bottom nav */
+    .bottom-nav {
+      background: linear-gradient(0deg, rgba(15,25,15,.98), rgba(26,46,26,.95));
+      border-top: 1px solid rgba(122,171,90,.25);
+      padding: 8px 0 16px;
+      display: flex; justify-content: space-around;
+      position: sticky; bottom: 0; z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 6px 12px; cursor: pointer;
+      transition: all .2s ease; border-radius: var(--r-sm);
+      min-width: 60px;
+    }
+    .nav-item .icon { font-size: 22px; transition: transform .2s; }
+    .nav-item .label { font-size: 10px; font-weight: 600; color: var(--stone); transition: color .2s; text-transform: uppercase; letter-spacing: .5px; }
+    .nav-item.active .icon { filter: drop-shadow(0 0 6px var(--lime)); transform: translateY(-2px); }
+    .nav-item.active .label { color: var(--lime); }
+    .nav-item:hover .icon { transform: translateY(-2px); }
+
+    /* Scroll area */
+    .scroll-area { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 8px; }
+
+    /* Map simulation */
+    .map-container {
+      background: linear-gradient(135deg, #1a3a2a 0%, #0f2a1a 25%, #1a2e1f 50%, #0a1f15 100%);
+      border-radius: var(--r); overflow: hidden; position: relative;
+      border: 1px solid rgba(122,171,90,.3);
+    }
+    .map-grid {
+      position: absolute; inset: 0; opacity: .08;
+      background-image:
+        linear-gradient(rgba(168,212,90,.5) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(168,212,90,.5) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+    .map-terrain {
+      position: absolute; inset: 0; opacity: .15;
+      background: radial-gradient(ellipse at 30% 40%, rgba(74,124,74,.8) 0%, transparent 50%),
+                  radial-gradient(ellipse at 70% 60%, rgba(45,74,45,.6) 0%, transparent 40%),
+                  radial-gradient(ellipse at 50% 80%, rgba(30,60,30,.9) 0%, transparent 45%);
+    }
+    .gps-path {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    .waypoint-marker {
+      position: absolute; transform: translate(-50%, -50%);
+      cursor: pointer; z-index: 10;
+    }
+    .waypoint-dot {
+      width: 14px; height: 14px;
+      background: var(--lime); border-radius: 50%;
+      border: 2px solid var(--white);
+      box-shadow: 0 0 8px rgba(168,212,90,.6);
+      animation: mapPulse 2s infinite;
+    }
+    .waypoint-dot.hito {
+      background: var(--gold);
+      box-shadow: 0 0 12px rgba(212,160,23,.8);
+    }
+    .waypoint-dot.start { background: var(--sky); box-shadow: 0 0 10px rgba(90,154,181,.7); }
+    .waypoint-dot.end { background: var(--accent); box-shadow: 0 0 10px rgba(232,84,26,.7); }
+    .waypoint-label {
+      position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+      background: rgba(15,25,15,.85); color: var(--cream);
+      font-size: 9px; padding: 2px 5px; border-radius: 4px; white-space: nowrap;
+      border: 1px solid rgba(122,171,90,.3);
+    }
+    .current-pos {
+      position: absolute; transform: translate(-50%, -50%);
+      z-index: 20;
+    }
+    .pos-outer {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: rgba(90,154,181,.25); border: 2px solid var(--sky);
+      display: flex; align-items: center; justify-content: center;
+      animation: pulse 1.5s infinite;
+    }
+    .pos-inner { width: 10px; height: 10px; border-radius: 50%; background: var(--sky); }
+    .map-compass {
+      position: absolute; top: 12px; right: 12px;
+      background: rgba(15,25,15,.7); border: 1px solid rgba(122,171,90,.3);
+      border-radius: 50%; width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; backdrop-filter: blur(4px);
+    }
+    .map-scale {
+      position: absolute; bottom: 12px; left: 12px;
+      background: rgba(15,25,15,.7); border: 1px solid rgba(122,171,90,.3);
+      border-radius: 4px; padding: 3px 8px;
+      font-size: 10px; color: var(--mist); font-family: 'JetBrains Mono', monospace;
+    }
+    .map-stats {
+      position: absolute; top: 12px; left: 12px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .map-stat-pill {
+      background: rgba(15,25,15,.75); border: 1px solid rgba(122,171,90,.25);
+      border-radius: 20px; padding: 3px 10px;
+      font-size: 11px; color: var(--lime); font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Recording indicator */
+    .rec-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(196,60,30,.2); border: 1px solid rgba(196,60,30,.5);
+      border-radius: 20px; padding: 4px 10px;
+      font-size: 12px; color: #ff6b4a;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #ff4020; animation: pulse 1s infinite; }
+
+    /* Forms */
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-label { font-size: 12px; color: var(--mist); font-weight: 600; text-transform: uppercase; letter-spacing: .8px; }
+    .form-input {
+      background: rgba(15,25,15,.6); border: 1px solid rgba(122,171,90,.25);
+      border-radius: var(--r-sm); padding: 10px 14px;
+      color: var(--cream); font-family: 'Source Sans 3', sans-serif; font-size: 14px;
+      transition: border-color .2s, box-shadow .2s;
+      width: 100%;
+    }
+    .form-input:focus { outline: none; border-color: var(--sage); box-shadow: 0 0 0 3px rgba(122,171,90,.15); }
+    .form-input::placeholder { color: var(--stone); }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-select {
+      background: rgba(15,25,15,.6); border: 1px solid rgba(122,171,90,.25);
+      border-radius: var(--r-sm); padding: 10px 14px;
+      color: var(--cream); font-size: 14px; width: 100%;
+      appearance: none;
+    }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; background: rgba(15,25,15,.4); border-radius: var(--r-sm); padding: 4px; }
+    .tab-btn {
+      flex: 1; padding: 8px; border-radius: 6px; border: none;
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s;
+      font-family: 'Source Sans 3', sans-serif; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .tab-btn.active { background: linear-gradient(135deg, var(--leaf), var(--sage)); color: var(--white); }
+    .tab-btn:not(.active) { background: transparent; color: var(--stone); }
+
+    /* Category chips */
+    .chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all .2s; border: 1px solid transparent;
+    }
+    .chip-cultural { background: rgba(74,124,74,.25); color: var(--sage); border-color: rgba(74,124,74,.4); }
+    .chip-hist { background: rgba(139,105,20,.25); color: var(--clay); border-color: rgba(139,105,20,.4); }
+    .chip-art { background: rgba(90,90,74,.25); color: #c8c8a0; border-color: rgba(90,90,74,.4); }
+    .chip-patr { background: rgba(212,160,23,.25); color: var(--gold); border-color: rgba(212,160,23,.4); }
+    .chip-nat { background: rgba(42,90,122,.25); color: var(--sky); border-color: rgba(42,90,122,.4); }
+    .chip.selected { background: var(--sage); color: var(--forest); border-color: var(--sage); }
+
+    /* Media preview */
+    .media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .media-thumb {
+      aspect-ratio: 1; border-radius: 8px; overflow: hidden;
+      background: rgba(15,25,15,.6); border: 1px solid rgba(122,171,90,.2);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: transform .2s;
+      position: relative;
+    }
+    .media-thumb:hover { transform: scale(1.03); }
+    .media-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .media-thumb .media-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center;
+      font-size: 24px; opacity: 0; transition: opacity .2s;
+    }
+    .media-thumb:hover .media-overlay { opacity: 1; }
+    .media-type-badge {
+      position: absolute; bottom: 4px; right: 4px;
+      background: rgba(15,25,15,.8); border-radius: 4px;
+      font-size: 9px; padding: 2px 5px; color: var(--lime);
+    }
+    .media-add-btn {
+      aspect-ratio: 1; border-radius: 8px;
+      background: rgba(122,171,90,.1); border: 2px dashed rgba(122,171,90,.4);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; transition: all .2s; gap: 4px;
+      color: var(--sage); font-size: 11px;
+    }
+    .media-add-btn:hover { background: rgba(122,171,90,.2); border-color: var(--sage); }
+
+    /* Stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat-box {
+      background: rgba(15,25,15,.5); border: 1px solid rgba(122,171,90,.2);
+      border-radius: var(--r-sm); padding: 10px;
+      text-align: center;
+    }
+    .stat-value { font-size: 20px; font-weight: 700; color: var(--lime); font-family: 'JetBrains Mono', monospace; }
+    .stat-label { font-size: 10px; color: var(--stone); text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+
+    /* Recorrido item */
+    .recorrido-item {
+      background: linear-gradient(145deg, rgba(45,74,45,.6), rgba(26,46,26,.8));
+      border: 1px solid rgba(122,171,90,.2); border-radius: var(--r);
+      padding: 14px; cursor: pointer; transition: all .2s;
+      position: relative; overflow: hidden;
+    }
+    .recorrido-item::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      background: linear-gradient(180deg, var(--lime), var(--sage));
+    }
+    .recorrido-item:hover { border-color: rgba(122,171,90,.5); transform: translateX(2px); }
+    .recorrido-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .recorrido-name { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 600; color: var(--cream); }
+    .recorrido-meta { font-size: 11px; color: var(--stone); margin-top: 4px; }
+    .status-badge {
+      padding: 3px 8px; border-radius: 20px; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .status-activo { background: rgba(122,171,90,.2); color: var(--lime); border: 1px solid rgba(122,171,90,.4); }
+    .status-completo { background: rgba(42,90,122,.2); color: var(--sky); border: 1px solid rgba(42,90,122,.4); }
+    .status-borrador { background: rgba(139,105,20,.2); color: var(--clay); border: 1px solid rgba(139,105,20,.4); }
+    .status-publicado { background: rgba(212,160,23,.2); color: var(--gold); border: 1px solid rgba(212,160,23,.4); }
+
+    /* Hito card */
+    .hito-card {
+      background: linear-gradient(145deg, rgba(45,74,45,.5), rgba(26,46,26,.7));
+      border: 1px solid rgba(212,160,23,.25); border-radius: var(--r);
+      padding: 14px; margin-bottom: 10px;
+    }
+    .hito-number {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--earth), var(--clay));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: var(--white);
+      flex-shrink: 0;
+    }
+
+    /* Interview question */
+    .question-card {
+      background: rgba(15,25,15,.5); border: 1px solid rgba(122,171,90,.15);
+      border-radius: var(--r-sm); padding: 12px; margin-bottom: 10px;
+    }
+    .q-number {
+      font-size: 10px; color: var(--sage); font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;
+    }
+    .q-text { font-size: 14px; color: var(--cream); margin-bottom: 8px; line-height: 1.5; }
+    .q-category { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--stone); }
+
+    /* Progress bar */
+    .progress-track {
+      height: 4px; background: rgba(122,171,90,.15); border-radius: 2px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 2px;
+      background: linear-gradient(90deg, var(--sage), var(--lime));
+      transition: width .4s ease;
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.75);
+      z-index: 500; display: flex; align-items: flex-end;
+      backdrop-filter: blur(4px);
+    }
+    .modal-sheet {
+      background: linear-gradient(180deg, var(--moss) 0%, var(--forest) 100%);
+      border-radius: 20px 20px 0 0; width: 100%; max-width: 480px; margin: 0 auto;
+      padding: 20px; max-height: 90vh; overflow-y: auto;
+      border-top: 1px solid rgba(122,171,90,.3);
+      animation: fadeUp .3s ease;
+    }
+    .modal-handle {
+      width: 40px; height: 4px; background: rgba(122,171,90,.3);
+      border-radius: 2px; margin: 0 auto 16px;
+    }
+
+    /* Table */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .data-table th {
+      background: rgba(15,25,15,.6); color: var(--sage); text-transform: uppercase;
+      letter-spacing: .8px; padding: 8px 10px; text-align: left;
+      border-bottom: 1px solid rgba(122,171,90,.2); font-size: 10px;
+    }
+    .data-table td { padding: 8px 10px; border-bottom: 1px solid rgba(122,171,90,.08); color: var(--cream); vertical-align: top; }
+    .data-table tr:hover td { background: rgba(122,171,90,.05); }
+
+    /* Alerts */
+    .alert { border-radius: var(--r-sm); padding: 10px 14px; font-size: 13px; display: flex; align-items: flex-start; gap: 8px; }
+    .alert-info { background: rgba(42,90,122,.2); border: 1px solid rgba(42,90,122,.4); color: var(--sky); }
+    .alert-success { background: rgba(74,124,74,.2); border: 1px solid rgba(74,124,74,.4); color: var(--sage); }
+    .alert-warn { background: rgba(139,105,20,.2); border: 1px solid rgba(139,105,20,.4); color: var(--clay); }
+
+    /* Separator */
+    .sep { height: 1px; background: rgba(122,171,90,.12); margin: 12px 0; }
+    .section-title { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--lime); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+    /* Toggle */
+    .toggle {
+      width: 44px; height: 24px; border-radius: 12px; border: none; cursor: pointer;
+      transition: background .2s; position: relative;
+      flex-shrink: 0;
+    }
+    .toggle.on { background: linear-gradient(135deg, var(--leaf), var(--sage)); }
+    .toggle.off { background: rgba(90,90,74,.4); }
+    .toggle::after {
+      content: ''; position: absolute; top: 2px; width: 20px; height: 20px;
+      border-radius: 50%; background: var(--white);
+      transition: left .2s; box-shadow: 0 1px 4px rgba(0,0,0,.3);
+    }
+    .toggle.on::after { left: 22px; }
+    .toggle.off::after { left: 2px; }
+
+    /* GPS Track line */
+    .track-line { stroke: var(--lime); stroke-width: 2.5; fill: none; stroke-dasharray: 6,3; opacity: .7; }
+    .track-line-solid { stroke: var(--sage); stroke-width: 2; fill: none; opacity: .5; }
+
+    /* Loading */
+    .loading-ring {
+      width: 40px; height: 40px; border: 3px solid rgba(122,171,90,.2);
+      border-top-color: var(--lime); border-radius: 50%; animation: spin 1s linear infinite;
+    }
+
+    /* Hero gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, var(--lime), var(--clay), var(--sage));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Admin panel */
+    .admin-header {
+      background: linear-gradient(135deg, rgba(139,105,20,.3), rgba(26,46,26,.8));
+      border: 1px solid rgba(212,160,23,.3); border-radius: var(--r); padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .empty-state {
+      text-align: center; padding: 40px 20px; color: var(--stone);
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: .5; }
+    .empty-text { font-size: 14px; line-height: 1.6; }
+
+    /* FAB */
+    .fab {
+      position: fixed; bottom: 80px; right: 20px; z-index: 200;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--sage), var(--lime));
+      border: none; cursor: pointer; font-size: 24px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(122,171,90,.5);
+      transition: all .2s; animation: glow 3s infinite;
+    }
+    .fab:active { transform: scale(.92); }
+
+    /* Coords display */
+    .coords-display {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--sage);
+      background: rgba(15,25,15,.5); padding: 6px 10px; border-radius: 6px;
+      border: 1px solid rgba(122,171,90,.2);
+    }
+
+    /* Section badges */
+    .cat-badge {
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .cat-cultural { background: rgba(74,124,74,.3); color: var(--sage); }
+    .cat-historico { background: rgba(139,105,20,.3); color: var(--clay); }
+    .cat-artistico { background: rgba(90,90,74,.3); color: #c8c8a0; }
+    .cat-patrimonial { background: rgba(212,160,23,.3); color: var(--gold); }
+    .cat-natural { background: rgba(42,90,122,.3); color: var(--sky); }
+
+    /* Scrollable horizontal */
+    .h-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+    .h-scroll::-webkit-scrollbar { display: none; }
+
+    input[type="file"] { display: none; }
+
+    .row { display: flex; align-items: center; gap: 10px; }
+    .row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .col { display: flex; flex-direction: column; gap: 6px; }
+    .gap-8 { gap: 8px; }
+    .mt-8 { margin-top: 8px; }
+    .mt-12 { margin-top: 12px; }
+    .mt-16 { margin-top: 16px; }
+    .mb-12 { margin-bottom: 12px; }
+    .text-sm { font-size: 12px; }
+    .text-xs { font-size: 11px; }
+    .text-mist { color: var(--mist); }
+    .text-stone { color: var(--stone); }
+    .text-lime { color: var(--lime); }
+    .text-gold { color: var(--gold); }
+    .text-center { text-align: center; }
+    .flex-1 { flex: 1; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─── Data Layer (LocalStorage) ─────────────────────────────────────────────
+const DB = {
+  get: (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } },
+  set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+  
+  getRecorridos: () => DB.get('mbt_recorridos') || [],
+  saveRecorridos: (r) => DB.set('mbt_recorridos', r),
+  
+  getHitos: () => DB.get('mbt_hitos') || [],
+  saveHitos: (h) => DB.set('mbt_hitos', h),
+  
+  getMedia: () => DB.get('mbt_media') || [],
+  saveMedia: (m) => DB.set('mbt_media', m),
+  
+  getEntrevistas: () => DB.get('mbt_entrevistas') || [],
+  saveEntrevistas: (e) => DB.set('mbt_entrevistas', e),
+  
+  exportJSON: () => JSON.stringify({
+    recorridos: DB.getRecorridos(),
+    hitos: DB.getHitos(),
+    media: DB.getMedia(),
+    entrevistas: DB.getEntrevistas(),
+    exportedAt: new Date().toISOString(),
+    version: '1.0'
+  }, null, 2)
+};
+
+// ─── Seed data ────────────────────────────────────────────────────────────
+const DEMO_DATA = () => {
+  const rec = [{
+    id: 'rec-001', nombre: 'Sendero del Río Frío', zona: 'Vereda El Paraíso',
+    municipio: 'San Gil', departamento: 'Santander',
+    fecha: '2025-11-15', estado: 'publicado',
+    distancia: '4.2', duracion: '2h15m', participantes: 3,
+    descripcion: 'Recorrido por ribera del río documentando manifestaciones culturales de comunidad campesina.',
+    coordInicio: '6.5584,-73.1355', coordFin: '6.5720,-73.1280',
+    waypoints: [
+      { x: 20, y: 75, tipo: 'start', label: 'Inicio' },
+      { x: 35, y: 58, tipo: 'hito', label: 'Molino' },
+      { x: 52, y: 45, tipo: 'parada', label: 'Quebrada' },
+      { x: 68, y: 35, tipo: 'hito', label: 'Capilla' },
+      { x: 82, y: 25, tipo: 'end', label: 'Fin' }
+    ],
+    creador: 'investigador1', tags: ['cultural','histórico','natural']
+  }, {
+    id: 'rec-002', nombre: 'Circuito Páramo Las Flores', zona: 'Vereda Alta',
+    municipio: 'Encino', departamento: 'Santander',
+    fecha: '2025-11-20', estado: 'borrador',
+    distancia: '7.8', duracion: '4h30m', participantes: 5,
+    descripcion: 'Documentación de saberes ancestrales sobre plantas medicinales del páramo.',
+    coordInicio: '6.1220,-73.4460', coordFin: '6.1380,-73.4210',
+    waypoints: [
+      { x: 15, y: 80, tipo: 'start', label: 'Inicio' },
+      { x: 30, y: 62, tipo: 'parada', label: 'Laguna' },
+      { x: 55, y: 48, tipo: 'hito', label: 'Árbol' },
+      { x: 78, y: 30, tipo: 'end', label: 'Fin' }
+    ],
+    creador: 'investigador2', tags: ['natural','cultural']
+  }];
+  
+  const hitos = [{
+    id: 'hit-001', recorridoId: 'rec-001',
+    nombre: 'Molino Colonial de La Chorrera',
+    descripcion: 'Estructura hidráulica del siglo XVIII usada para molienda de caña y maíz. Actualmente en desuso pero preservada por la familia Forero como patrimonio familiar. Posee una rueda de madera original de 3.2m de diámetro.',
+    categorias: ['histórico', 'patrimonial'],
+    coords: '6.5640,-73.1320', ubicacion: { x: 35, y: 58 },
+    fechaRegistro: '2025-11-15T09:30:00',
+    entrevistado: 'Don Alberto Forero, 78 años',
+    mediaIds: ['med-001', 'med-002'],
+    palabrasClave: ['molino', 'colonial', 'patrimonio', 'agua', 'técnica ancestral']
+  }, {
+    id: 'hit-002', recorridoId: 'rec-001',
+    nombre: 'Capilla de Piedra San Isidro',
+    descripcion: 'Construcción religiosa vernácula del siglo XIX en bahareque y piedra. Centro de la festividad patronal campesina. Contiene pinturas murales elaboradas por artesanos locales con pigmentos naturales.',
+    categorias: ['cultural', 'artístico', 'patrimonial'],
+    coords: '6.5698,-73.1295', ubicacion: { x: 68, y: 35 },
+    fechaRegistro: '2025-11-15T11:15:00',
+    entrevistado: 'Doña Carmen Villamizar, 65 años',
+    mediaIds: ['med-003'],
+    palabrasClave: ['capilla', 'mural', 'festividad', 'artesanía', 'bahareque']
+  }];
+  
+  DB.saveRecorridos(rec);
+  DB.saveHitos(hitos);
+  DB.saveMedia([
+    { id: 'med-001', hitoId: 'hit-001', tipo: 'foto', descripcion: 'Vista frontal rueda de molino', thumb: null, fecha: '2025-11-15T09:35:00' },
+    { id: 'med-002', hitoId: 'hit-001', tipo: 'foto', descripcion: 'Detalle mecanismo piedras', thumb: null, fecha: '2025-11-15T09:40:00' },
+    { id: 'med-003', hitoId: 'hit-002', tipo: 'foto', descripcion: 'Mural interior capilla', thumb: null, fecha: '2025-11-15T11:20:00' }
+  ]);
+  DB.saveEntrevistas([{
+    id: 'ent-001', hitoId: 'hit-001', recorridoId: 'rec-001',
+    entrevistado: 'Don Alberto Forero', edad: 78, ocupacion: 'Agricultor',
+    fecha: '2025-11-15',
+    respuestas: {
+      'q1': 'Este molino lo construyó mi bisabuelo en 1887 con piedras del río y madera de cedro del monte.',
+      'q2': 'Aquí se molía el maíz de toda la vereda. La gente venía de lejos. Era el punto de encuentro.',
+      'q3': 'Los saberes los aprendí de mi padre. Él me enseñó cómo regular el caudal para que la rueda girara parejo.',
+      'q4': 'Antes había 4 molinos en esta quebrada. Ahora solo este, los demás los derribó una creciente en el 62.'
+    }
+  }]);
+};
+
+// ─── Preguntas base entrevista semiestructurada ────────────────────────────
+const PREGUNTAS_BASE = [
+  { id:'q1', cat:'histórico', emoji:'🏛️', texto:'¿Cuándo y cómo se originó este lugar o elemento? ¿Quiénes fueron sus fundadores o creadores?' },
+  { id:'q2', cat:'cultural', emoji:'🎭', texto:'¿Qué significado cultural o simbólico tiene este lugar para la comunidad? ¿Se asocia a alguna festividad o ritual?' },
+  { id:'q3', cat:'cultural', emoji:'🧓', texto:'¿Qué saberes, prácticas o técnicas tradicionales están vinculadas a este lugar o elemento?' },
+  { id:'q4', cat:'histórico', emoji:'📜', texto:'¿Qué transformaciones ha tenido este lugar a lo largo del tiempo? ¿Cómo era antes en comparación a ahora?' },
+  { id:'q5', cat:'artístico', emoji:'🎨', texto:'¿Existen expresiones artísticas, música, danza u otras manifestaciones culturales asociadas a este espacio?' },
+  { id:'q6', cat:'patrimonial', emoji:'⭐', texto:'¿Por qué considera importante preservar este lugar o elemento para las generaciones futuras?' },
+  { id:'q7', cat:'natural', emoji:'🌿', texto:'¿Qué relación existe entre este elemento y el entorno natural? ¿Hay plantas o animales con significado especial aquí?' },
+  { id:'q8', cat:'cultural', emoji:'👥', texto:'¿Cómo se transmite el conocimiento sobre este lugar a las nuevas generaciones de la comunidad?' },
+  { id:'q9', cat:'patrimonial', emoji:'⚠️', texto:'¿Existen amenazas o riesgos que pongan en peligro este patrimonio? ¿Qué acciones de protección existen?' },
+  { id:'q10', cat:'artístico', emoji:'🖼️', texto:'¿Puede describir en detalle los elementos estéticos, materiales o técnicas constructivas de este lugar?' }
+];
+
+const CATEGORIAS = ['cultural','histórico','artístico','patrimonial','natural'];
+
+// ─── Utils ─────────────────────────────────────────────────────────────────
+const genId = (p='') => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const formatDate = (d) => new Date(d).toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
+const formatTime = (s) => { const m = Math.floor(s/60); return `${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; };
+
+// ─── Icons ─────────────────────────────────────────────────────────────────
+const icons = {
+  map: '🗺️', route: '🛤️', hito: '📍', camera: '📷', video: '🎥',
+  interview: '🎙️', db: '🗄️', admin: '⚙️', add: '➕', save: '💾',
+  play: '▶️', pause: '⏸️', stop: '⏹️', export: '📤', filter: '🔍',
+  location: '📌', tree: '🌳', history: '🏛️', art: '🎨', star: '⭐',
+  water: '💧', back: '←', check: '✓', edit: '✏️', trash: '🗑️',
+  user: '👤', compass: '🧭', distance: '📏', time: '⏱️', upload: '⬆️',
+  eye: '👁️', lock: '🔒', unlock: '🔓', share: '📢', folk: '🎭'
+};
+
+// ─── GPS Simulator ──────────────────────────────────────────────────────────
+function useGPS() {
+  const [coords, setCoords] = useState(null);
+  const [tracking, setTracking] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [distance, setDistance] = useState(0);
+  const intervalRef = useRef(null);
+  const timerRef = useRef(null);
+  const pathRef = useRef([]);
+
+  const startTracking = useCallback(() => {
+    setTracking(true);
+    setElapsed(0); setDistance(0); pathRef.current = [];
+    let lat = 6.5584 + (Math.random()-.5)*.01;
+    let lng = -73.1355 + (Math.random()-.5)*.01;
+    setCoords({ lat, lng, accuracy: 4 });
+    intervalRef.current = setInterval(() => {
+      lat += (Math.random()-.5)*.0003;
+      lng += (Math.random()-.5)*.0003;
+      pathRef.current.push({ lat, lng });
+      setCoords({ lat: +lat.toFixed(6), lng: +lng.toFixed(6), accuracy: Math.round(3+Math.random()*5) });
+      setDistance(d => +(d + 0.015 + Math.random()*.025).toFixed(2));
+    }, 2000);
+    timerRef.current = setInterval(() => setElapsed(e => e+1), 1000);
+  }, []);
+
+  const stopTracking = useCallback(() => {
+    setTracking(false);
+    clearInterval(intervalRef.current);
+    clearInterval(timerRef.current);
+  }, []);
+
+  useEffect(() => () => { clearInterval(intervalRef.current); clearInterval(timerRef.current); }, []);
+  return { coords, tracking, elapsed, distance, startTracking, stopTracking, path: pathRef.current };
+}
+
+// ─── MAP SCREEN ────────────────────────────────────────────────────────────
+function MapScreen({ gps, onAddHito }) {
+  const [activeRec, setActiveRec] = useState(null);
+  const [showRecModal, setShowRecModal] = useState(false);
+  const recs = DB.getRecorridos();
+  const hitos = DB.getHitos();
+
+  const displayRec = activeRec ? recs.find(r=>r.id===activeRec) : null;
+  const displayHitos = activeRec ? hitos.filter(h=>h.recorridoId===activeRec) : [];
+
+  // Simulated current position on map (percentage)
+  const posX = gps.tracking ? (30 + (gps.elapsed * 0.8) % 60) : 50;
+  const posY = gps.tracking ? (70 - (gps.elapsed * 0.5) % 50) : 50;
+
+  return (
+    <div className="scroll-area">
+      {/* GPS Status */}
+      <div className="card card-elevated mb-12 fade-up">
+        <div className="row-between mb-12">
+          <div className="row gap-8">
+            <span style={{fontSize:20}}>{icons.compass}</span>
+            <div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,fontWeight:600,color:'var(--cream)'}}>GPS En Vivo</div>
+              <div className="text-xs text-stone">{gps.tracking ? 'Rastreando recorrido activo' : 'Listo para iniciar'}</div>
+            </div>
+          </div>
+          {gps.tracking
+            ? <div className="rec-badge"><div className="rec-dot"/><span>REC</span></div>
+            : <div style={{fontSize:11,color:'var(--stone)'}}>En espera</div>}
+        </div>
+        {gps.coords && (
+          <div className="coords-display mb-12">
+            📍 {gps.coords.lat}°N, {gps.coords.lng}°W  ±{gps.coords.accuracy}m
+          </div>
+        )}
+        <div className="stats-row mb-12">
+          <div className="stat-box"><div className="stat-value">{gps.distance}</div><div className="stat-label">km</div></div>
+          <div className="stat-box"><div className="stat-value">{formatTime(gps.elapsed)}</div><div className="stat-label">tiempo</div></div>
+          <div className="stat-box"><div className="stat-value">{hitos.filter(h=>h.recorridoId===activeRec).length || 0}</div><div className="stat-label">hitos</div></div>
+        </div>
+        <div className="row gap-8">
+          {!gps.tracking
+            ? <button className="btn btn-primary btn-full btn-lg" onClick={() => { gps.startTracking(); setShowRecModal(true); }}>▶ Iniciar Recorrido</button>
+            : <>
+              <button className="btn btn-accent flex-1" onClick={() => onAddHito(activeRec)}>📍 Agregar Hito</button>
+              <button className="btn btn-danger" onClick={gps.stopTracking}>⏹ Pausar</button>
+            </>}
+        </div>
+      </div>
+
+      {/* Map View */}
+      <div className="map-container" style={{height:300}} >
+        <div className="map-grid"/>
+        <div className="map-terrain"/>
+        <svg className="gps-path" viewBox="0 0 100 100" preserveAspectRatio="none">
+          {displayRec && (
+            <>
+              <polyline className="track-line-solid"
+                points={displayRec.waypoints.map(w=>`${w.x},${w.y}`).join(' ')} />
+              <polyline className="track-line"
+                points={displayRec.waypoints.map(w=>`${w.x},${w.y}`).join(' ')} />
+            </>
+          )}
+          {gps.tracking && gps.elapsed > 2 && (
+            <polyline className="track-line"
+              points={`20,75 ${Math.min(posX,82)},${Math.max(posY,25)}`} />
+          )}
+        </svg>
+
+        {displayRec && displayRec.waypoints.map((wp, i) => (
+          <div key={i} className="waypoint-marker" style={{left:`${wp.x}%`, top:`${wp.y}%`}}>
+            <div className={`waypoint-dot ${wp.tipo}`}/>
+            <div className="waypoint-label">{wp.label}</div>
+          </div>
+        ))}
+
+        {gps.tracking && (
+          <div className="current-pos" style={{left:`${posX}%`, top:`${posY}%`}}>
+            <div className="pos-outer"><div className="pos-inner"/></div>
+          </div>
+        )}
+
+        <div className="map-compass">{icons.compass}</div>
+        <div className="map-scale mono">1:25.000</div>
+        <div className="map-stats">
+          {displayRec && <div className="map-stat-pill">📏 {displayRec.distancia}km</div>}
+          {gps.tracking && <div className="map-stat-pill">🔴 GPS activo</div>}
+        </div>
+      </div>
+
+      {/* Recorridos selector */}
+      <div className="mt-16">
+        <div className="section-title">{icons.route} Recorridos</div>
+        <div className="h-scroll mb-12">
+          <button className={`chip ${!activeRec?'selected':'chip-nat'}`} onClick={()=>setActiveRec(null)}>Todos</button>
+          {recs.map(r => (
+            <button key={r.id} className={`chip ${activeRec===r.id?'selected':'chip-cultural'}`} onClick={()=>setActiveRec(r.id)}>
+              {r.nombre.split(' ').slice(0,3).join(' ')}
+            </button>
+          ))}
+        </div>
+
+        {(displayRec ? [displayRec] : recs).map(rec => (
+          <div key={rec.id} className="recorrido-item fade-up" style={{marginBottom:8}}>
+            <div className="recorrido-header">
+              <div>
+                <div className="recorrido-name">{rec.nombre}</div>
+                <div className="recorrido-meta">{rec.municipio}, {rec.departamento} · {formatDate(rec.fecha)}</div>
+              </div>
+              <span className={`status-badge status-${rec.estado}`}>{rec.estado}</span>
+            </div>
+            <div className="sep" style={{margin:'8px 0'}}/>
+            <div className="row gap-8 text-xs text-stone">
+              <span>📏 {rec.distancia}km</span>
+              <span>⏱ {rec.duracion}</span>
+              <span>👥 {rec.participantes} part.</span>
+              <span>📍 {hitos.filter(h=>h.recorridoId===rec.id).length} hitos</span>
+            </div>
+            <div className="chip-group mt-8">
+              {rec.tags.map(t => <span key={t} className={`chip chip-${t==='cultural'?'cultural':t==='histórico'?'hist':t==='artístico'?'art':t==='natural'?'nat':'patr'}`}>{t}</span>)}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* New recorrido modal */}
+      {showRecModal && <NuevoRecorridoModal onClose={()=>setShowRecModal(false)} onSave={(id)=>{setActiveRec(id);setShowRecModal(false);}}/>}
+    </div>
+  );
+}
+
+// ─── NUEVO RECORRIDO MODAL ─────────────────────────────────────────────────
+function NuevoRecorridoModal({ onClose, onSave }) {
+  const [form, setForm] = useState({ nombre:'', zona:'', municipio:'', departamento:'Santander', descripcion:'' });
+  const upd = (k,v) => setForm(f=>({...f,[k]:v}));
+  const save = () => {
+    if (!form.nombre.trim()) return;
+    const id = genId('rec-');
+    const recs = DB.getRecorridos();
+    recs.push({ id, ...form, fecha: new Date().toISOString().slice(0,10),
+      estado: 'activo', distancia: '0', duracion: '0m', participantes: 1,
+      coordInicio: '', coordFin: '', waypoints: [], creador: 'usuario', tags: [] });
+    DB.saveRecorridos(recs);
+    onSave(id);
+  };
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+        <div className="modal-handle"/>
+        <div className="section-title">{icons.route} Nuevo Recorrido</div>
+        <div className="form-group"><label className="form-label">Nombre del recorrido *</label>
+          <input className="form-input" placeholder="Ej: Sendero de los Ceibos" value={form.nombre} onChange={e=>upd('nombre',e.target.value)}/></div>
+        <div className="form-group"><label className="form-label">Zona / Vereda</label>
+          <input className="form-input" placeholder="Vereda, corregimiento o barrio" value={form.zona} onChange={e=>upd('zona',e.target.value)}/></div>
+        <div className="row gap-8">
+          <div className="form-group flex-1"><label className="form-label">Municipio</label>
+            <input className="form-input" value={form.municipio} onChange={e=>upd('municipio',e.target.value)}/></div>
+          <div className="form-group flex-1"><label className="form-label">Departamento</label>
+            <input className="form-input" value={form.departamento} onChange={e=>upd('departamento',e.target.value)}/></div>
+        </div>
+        <div className="form-group"><label className="form-label">Descripción</label>
+          <textarea className="form-input form-textarea" placeholder="Objetivo del recorrido, comunidad a documentar..." value={form.descripcion} onChange={e=>upd('descripcion',e.target.value)}/></div>
+        <div className="row gap-8 mt-12">
+          <button className="btn btn-ghost flex-1" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary flex-1" onClick={save}>Crear e Iniciar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── HITOS SCREEN ─────────────────────────────────────────────────────────
+function HitosScreen({ recorridoIdProp }) {
+  const [selectedRec, setSelectedRec] = useState(recorridoIdProp || '');
+  const [showForm, setShowForm] = useState(false);
+  const [selectedHito, setSelectedHito] = useState(null);
+  const [filter, setFilter] = useState('todos');
+  const recs = DB.getRecorridos();
+  const allHitos = DB.getHitos();
+  const hitos = allHitos.filter(h => (!selectedRec || h.recorridoId === selectedRec) && (filter==='todos' || h.categorias.includes(filter)));
+
+  useEffect(() => { if (recorridoIdProp) setShowForm(true); }, [recorridoIdProp]);
+
+  return (
+    <div className="scroll-area">
+      <div className="row-between mb-12 fade-up">
+        <div className="section-title" style={{margin:0}}>{icons.hito} Hitos Culturales</div>
+        <button className="btn btn-primary btn-sm" onClick={()=>setShowForm(true)}>+ Nuevo Hito</button>
+      </div>
+
+      {/* Filtros */}
+      <div className="h-scroll mb-12">
+        {['todos',...CATEGORIAS].map(c => (
+          <button key={c} className={`chip ${filter===c?'selected':c==='todos'?'chip-nat':c==='cultural'?'chip-cultural':c==='histórico'?'chip-hist':c==='artístico'?'chip-art':c==='patrimonial'?'chip-patr':'chip-nat'}`}
+            onClick={()=>setFilter(c)}>{c}</button>
+        ))}
+      </div>
+
+      {/* Recorrido selector */}
+      <div className="form-group mb-12">
+        <select className="form-select" value={selectedRec} onChange={e=>setSelectedRec(e.target.value)}>
+          <option value="">— Todos los recorridos —</option>
+          {recs.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+        </select>
+      </div>
+
+      {hitos.length === 0 ? (
+        <div className="empty-state fade-up">
+          <div className="empty-icon">{icons.hito}</div>
+          <div className="empty-text">No hay hitos registrados.<br/>Inicia un recorrido y agrega puntos de interés cultural.</div>
+          <button className="btn btn-primary mt-12" onClick={()=>setShowForm(true)}>Agregar primer hito</button>
+        </div>
+      ) : hitos.map((hito, i) => (
+        <div key={hito.id} className="hito-card fade-up" style={{animationDelay:`${i*.08}s`}} onClick={()=>setSelectedHito(hito)}>
+          <div className="row-between mb-8">
+            <div className="row gap-8">
+              <div className="hito-number">{i+1}</div>
+              <div>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,fontWeight:600}}>{hito.nombre}</div>
+                <div className="text-xs text-stone">{recs.find(r=>r.id===hito.recorridoId)?.nombre || 'Recorrido'}</div>
+              </div>
+            </div>
+          </div>
+          <div className="chip-group mb-8">
+            {hito.categorias.map(c => <span key={c} className={`cat-badge cat-${c}`}>{c}</span>)}
+          </div>
+          <div className="text-sm text-mist" style={{lineHeight:1.5,WebkitLineClamp:2,display:'-webkit-box',WebkitBoxOrient:'vertical',overflow:'hidden'}}>
+            {hito.descripcion}
+          </div>
+          {hito.palabrasClave?.length > 0 && (
+            <div className="row gap-8 mt-8 text-xs text-stone">
+              🏷️ {hito.palabrasClave.slice(0,4).join(' · ')}
+            </div>
+          )}
+          <div className="row gap-8 mt-8 text-xs text-stone">
+            <span>📷 {hito.mediaIds?.length||0} media</span>
+            <span>📍 {hito.coords}</span>
+            <span>{formatDate(hito.fechaRegistro)}</span>
+          </div>
+        </div>
+      ))}
+
+      {showForm && <HitoFormModal recId={selectedRec} recs={recs} onClose={()=>setShowForm(false)} onSaved={()=>setShowForm(false)}/>}
+      {selectedHito && <HitoDetailModal hito={selectedHito} recs={recs} onClose={()=>setSelectedHito(null)}/>}
+    </div>
+  );
+}
+
+// ─── HITO FORM MODAL ────────────────────────────────────────────────────────
+function HitoFormModal({ recId, recs, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    recorridoId: recId||'', nombre:'', descripcion:'',
+    categorias:[], coords:'', entrevistado:'', palabrasClave:''
+  });
+  const [media, setMedia] = useState([]);
+  const [activeTab, setActiveTab] = useState('info');
+  const [respuestas, setRespuestas] = useState({});
+  const fileRef = useRef();
+  const upd = (k,v) => setForm(f=>({...f,[k]:v}));
+  const toggleCat = (c) => upd('categorias', form.categorias.includes(c) ? form.categorias.filter(x=>x!==c) : [...form.categorias,c]);
+
+  const handleMedia = (e) => {
+    const files = Array.from(e.target.files);
+    files.forEach(f => {
+      const reader = new FileReader();
+      reader.onload = ev => setMedia(m => [...m, {
+        id: genId('med-'), tipo: f.type.startsWith('video') ? 'video' : 'foto',
+        descripcion: f.name, thumb: ev.target.result, fecha: new Date().toISOString()
+      }]);
+      reader.readAsDataURL(f);
+    });
+  };
+
+  const save = () => {
+    if (!form.nombre.trim() || !form.recorridoId) return;
+    const hitoId = genId('hit-');
+    const mediaIds = media.map(m => m.id);
+
+    const hitos = DB.getHitos();
+    hitos.push({ id:hitoId, ...form,
+      palabrasClave: form.palabrasClave.split(',').map(s=>s.trim()).filter(Boolean),
+      fechaRegistro: new Date().toISOString(), mediaIds });
+    DB.saveHitos(hitos);
+
+    const allMedia = DB.getMedia();
+    media.forEach(m => allMedia.push({...m, hitoId}));
+    DB.saveMedia(allMedia);
+
+    if (Object.keys(respuestas).length > 0) {
+      const ents = DB.getEntrevistas();
+      ents.push({ id:genId('ent-'), hitoId, recorridoId:form.recorridoId,
+        entrevistado:form.entrevistado, fecha:new Date().toISOString().slice(0,10), respuestas });
+      DB.saveEntrevistas(ents);
+    }
+    onSaved();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" style={{maxHeight:'92vh'}} onClick={e=>e.stopPropagation()}>
+        <div className="modal-handle"/>
+        <div className="section-title">{icons.hito} Registrar Hito Cultural</div>
+
+        <div className="tabs mb-12">
+          {['info','media','entrevista'].map(t=>(
+            <button key={t} className={`tab-btn ${activeTab===t?'active':''}`} onClick={()=>setActiveTab(t)}>
+              {t==='info'?'📋 Info':t==='media'?'📷 Media':'🎙️ Entrevista'}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'info' && (
+          <>
+            <div className="form-group">
+              <label className="form-label">Recorrido *</label>
+              <select className="form-select" value={form.recorridoId} onChange={e=>upd('recorridoId',e.target.value)}>
+                <option value="">Seleccionar recorrido</option>
+                {recs.map(r=><option key={r.id} value={r.id}>{r.nombre}</option>)}
+              </select>
+            </div>
+            <div className="form-group"><label className="form-label">Nombre del Hito *</label>
+              <input className="form-input" placeholder="Ej: Casa de tapia del siglo XIX" value={form.nombre} onChange={e=>upd('nombre',e.target.value)}/></div>
+            <div className="form-group"><label className="form-label">Descripción detallada</label>
+              <textarea className="form-input form-textarea" style={{minHeight:100}} placeholder="Describir características físicas, estado de conservación, materiales, dimensiones..." value={form.descripcion} onChange={e=>upd('descripcion',e.target.value)}/></div>
+            <div className="form-group"><label className="form-label">Categorías</label>
+              <div className="chip-group">
+                {CATEGORIAS.map(c=>(
+                  <button key={c} className={`chip ${form.categorias.includes(c)?'selected':c==='cultural'?'chip-cultural':c==='histórico'?'chip-hist':c==='artístico'?'chip-art':c==='patrimonial'?'chip-patr':'chip-nat'}`}
+                    onClick={()=>toggleCat(c)}>{c}</button>
+                ))}
+              </div>
+            </div>
+            <div className="form-group"><label className="form-label">Coordenadas GPS</label>
+              <input className="form-input mono" placeholder="6.5584,-73.1355" value={form.coords} onChange={e=>upd('coords',e.target.value)}/></div>
+            <div className="form-group"><label className="form-label">Palabras clave (separadas por coma)</label>
+              <input className="form-input" placeholder="patrimonio, artesanía, tradición oral..." value={form.palabrasClave} onChange={e=>upd('palabrasClave',e.target.value)}/></div>
+          </>
+        )}
+
+        {activeTab === 'media' && (
+          <>
+            <div className="alert alert-info mb-12">ℹ️ Sube fotos o videos de hasta 1 minuto del hito cultural.</div>
+            <input ref={fileRef} type="file" accept="image/*,video/*" multiple onChange={handleMedia}/>
+            <div className="media-grid">
+              {media.map((m,i) => (
+                <div key={i} className="media-thumb">
+                  {m.thumb
+                    ? (m.tipo==='video'
+                      ? <div style={{background:'rgba(0,0,0,.8)',width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:4}}>
+                          <span style={{fontSize:24}}>🎥</span><span style={{fontSize:9,color:'var(--sage)'}}>VIDEO</span></div>
+                      : <img src={m.thumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>)
+                    : <span style={{fontSize:24}}>{m.tipo==='video'?'🎥':'📷'}</span>}
+                  <div className="media-type-badge">{m.tipo}</div>
+                  <div className="media-overlay">🔍</div>
+                </div>
+              ))}
+              <div className="media-add-btn" onClick={()=>fileRef.current.click()}>
+                <span style={{fontSize:24}}>📷</span><span>Agregar</span>
+              </div>
+            </div>
+            <div className="form-group mt-12"><label className="form-label">Nombre del informante / entrevistado</label>
+              <input className="form-input" placeholder="Nombre, edad, rol en comunidad" value={form.entrevistado} onChange={e=>upd('entrevistado',e.target.value)}/></div>
+          </>
+        )}
+
+        {activeTab === 'entrevista' && (
+          <>
+            <div className="alert alert-success mb-12">🎙️ Guía semiestructurada de preguntas. Registra las respuestas del informante.</div>
+            {PREGUNTAS_BASE.map((q,i) => (
+              <div key={q.id} className="question-card">
+                <div className="q-number">Pregunta {i+1} · {q.cat}</div>
+                <div className="q-text">{q.emoji} {q.texto}</div>
+                <textarea className="form-input form-textarea" style={{minHeight:70,fontSize:13}}
+                  placeholder="Transcribir respuesta del informante..."
+                  value={respuestas[q.id]||''}
+                  onChange={e=>setRespuestas(r=>({...r,[q.id]:e.target.value}))}/>
+              </div>
+            ))}
+          </>
+        )}
+
+        <div className="row gap-8 mt-16">
+          <button className="btn btn-ghost flex-1" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary flex-1" onClick={save}>💾 Guardar Hito</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── HITO DETAIL MODAL ─────────────────────────────────────────────────────
+function HitoDetailModal({ hito, recs, onClose }) {
+  const ents = DB.getEntrevistas().filter(e=>e.hitoId===hito.id);
+  const media = DB.getMedia().filter(m=>m.hitoId===hito.id);
+  const rec = recs.find(r=>r.id===hito.recorridoId);
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" style={{maxHeight:'92vh'}} onClick={e=>e.stopPropagation()}>
+        <div className="modal-handle"/>
+        <div className="row-between mb-12">
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:700,color:'var(--lime)'}}>{hito.nombre}</div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div className="chip-group mb-12">
+          {hito.categorias.map(c=><span key={c} className={`cat-badge cat-${c}`}>{c}</span>)}
+        </div>
+        {rec && <div className="text-xs text-stone mb-8">📍 {rec.nombre} · {rec.municipio}</div>}
+        <div className="coords-display mb-12">{hito.coords||'Coords no registradas'}</div>
+        <div style={{fontSize:14,lineHeight:1.7,color:'var(--mist)',marginBottom:12}}>{hito.descripcion}</div>
+        {hito.palabrasClave?.length>0 && <div className="text-xs text-stone mb-12">🏷️ {hito.palabrasClave.join(' · ')}</div>}
+        {media.length>0 && <>
+          <div className="form-label mb-8">📷 MULTIMEDIA</div>
+          <div className="media-grid mb-12">
+            {media.map((m,i)=>(
+              <div key={i} className="media-thumb">
+                {m.thumb ? <img src={m.thumb} alt=""/> : <span style={{fontSize:24}}>{m.tipo==='video'?'🎥':'📷'}</span>}
+                <div className="media-type-badge">{m.tipo}</div>
+              </div>
+            ))}
+          </div>
+        </>}
+        {ents.length>0 && <>
+          <div className="form-label mb-8">🎙️ ENTREVISTA — {ents[0].entrevistado||'Informante'}</div>
+          {PREGUNTAS_BASE.filter(q=>ents[0].respuestas[q.id]).map(q=>(
+            <div key={q.id} className="question-card">
+              <div className="q-number">{q.emoji} {q.cat}</div>
+              <div className="q-text" style={{fontSize:12,marginBottom:6}}>{q.texto}</div>
+              <div style={{fontSize:13,color:'var(--cream)',fontStyle:'italic',lineHeight:1.6}}>
+                "{ents[0].respuestas[q.id]}"
+              </div>
+            </div>
+          ))}
+        </>}
+      </div>
+    </div>
+  );
+}
+
+// ─── ENTREVISTAS SCREEN ────────────────────────────────────────────────────
+function EntrevistasScreen() {
+  const ents = DB.getEntrevistas();
+  const hitos = DB.getHitos();
+  const recs = DB.getRecorridos();
+  const [sel, setSel] = useState(null);
+  const ent = sel ? ents.find(e=>e.id===sel) : null;
+
+  return (
+    <div className="scroll-area">
+      <div className="section-title fade-up">{icons.interview} Entrevistas Semiestructuradas</div>
+      <div className="alert alert-info mb-12 fade-up">
+        ℹ️ Las entrevistas se registran durante el marcado de hitos. Aquí puedes revisar y exportar los testimonios.
+      </div>
+
+      {ents.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">🎙️</div>
+          <div className="empty-text">No hay entrevistas registradas aún.<br/>Agrega hitos culturales con preguntas de entrevista.</div>
+        </div>
+      ) : (
+        <>
+          <div className="stats-row mb-12 fade-up">
+            <div className="stat-box"><div className="stat-value">{ents.length}</div><div className="stat-label">entrevistas</div></div>
+            <div className="stat-box"><div className="stat-value">{Object.values(ents.reduce((a,e)=>{const r=e.respuestas||{};Object.keys(r).forEach(k=>{if(r[k])a[k]=1});return a},{})).length}</div><div className="stat-label">respuestas</div></div>
+            <div className="stat-box"><div className="stat-value">{[...new Set(ents.map(e=>e.recorridoId))].length}</div><div className="stat-label">recorridos</div></div>
+          </div>
+
+          {ents.map((ent,i) => {
+            const hito = hitos.find(h=>h.id===ent.hitoId);
+            const rec = recs.find(r=>r.id===ent.recorridoId);
+            const respCount = Object.values(ent.respuestas||{}).filter(Boolean).length;
+            return (
+              <div key={ent.id} className="recorrido-item fade-up" style={{marginBottom:8,animationDelay:`${i*.08}s`}} onClick={()=>setSel(ent.id)}>
+                <div className="row-between">
+                  <div>
+                    <div className="recorrido-name">{ent.entrevistado||'Informante anónimo'}</div>
+                    <div className="recorrido-meta">{hito?.nombre || 'Hito'} · {rec?.nombre||'Recorrido'}</div>
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <div className="text-lime mono" style={{fontSize:16,fontWeight:700}}>{respCount}</div>
+                    <div className="text-xs text-stone">resp.</div>
+                  </div>
+                </div>
+                <div className="row gap-8 mt-8 text-xs text-stone">
+                  <span>📅 {formatDate(ent.fecha)}</span>
+                  <span>📍 {hito?.coords||'Sin coords'}</span>
+                </div>
+                <div className="progress-track mt-8">
+                  <div className="progress-fill" style={{width:`${(respCount/10)*100}%`}}/>
+                </div>
+                <div className="text-xs text-stone mt-4">{respCount}/10 preguntas respondidas</div>
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      {ent && (
+        <div className="modal-overlay" onClick={()=>setSel(null)}>
+          <div className="modal-sheet" style={{maxHeight:'92vh'}} onClick={e=>e.stopPropagation()}>
+            <div className="modal-handle"/>
+            <div className="row-between mb-12">
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:17,color:'var(--lime)'}}>🎙️ {ent.entrevistado||'Informante'}</div>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setSel(null)}>✕</button>
+            </div>
+            {PREGUNTAS_BASE.map(q => ent.respuestas?.[q.id] ? (
+              <div key={q.id} className="question-card">
+                <div className="q-number">{q.emoji} {q.cat.toUpperCase()}</div>
+                <div className="q-text" style={{fontSize:13}}>{q.texto}</div>
+                <div style={{fontSize:14,color:'var(--cream)',fontStyle:'italic',lineHeight:1.7,borderLeft:'2px solid var(--sage)',paddingLeft:10}}>
+                  "{ent.respuestas[q.id]}"
+                </div>
+              </div>
+            ) : null)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── DATABASE SCREEN ───────────────────────────────────────────────────────
+function DatabaseScreen() {
+  const [tab, setTab] = useState('resumen');
+  const recs = DB.getRecorridos();
+  const hitos = DB.getHitos();
+  const media = DB.getMedia();
+  const ents = DB.getEntrevistas();
+  const [filterRec, setFilterRec] = useState('');
+  const [filterCat, setFilterCat] = useState('');
+
+  const exportData = () => {
+    const data = DB.exportJSON();
+    const blob = new Blob([data], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `mapeo_biocultural_${new Date().toISOString().slice(0,10)}.json`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const exportCSV = () => {
+    const rows = [['ID','Recorrido','Municipio','Hito','Categorías','Coordenadas','Entrevistado','Fecha','Descripción']];
+    hitos.forEach(h => {
+      const rec = recs.find(r=>r.id===h.recorridoId);
+      const ent = ents.find(e=>e.hitoId===h.id);
+      rows.push([h.id, rec?.nombre||'', rec?.municipio||'', h.nombre, h.categorias.join('|'), h.coords, ent?.entrevistado||'', h.fechaRegistro.slice(0,10), h.descripcion.replace(/,/g,';')]);
+    });
+    const csv = rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `hitos_bioculturales_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const filteredHitos = hitos.filter(h =>
+    (!filterRec || h.recorridoId===filterRec) &&
+    (!filterCat || h.categorias.includes(filterCat))
+  );
+
+  return (
+    <div className="scroll-area">
+      <div className="section-title fade-up">{icons.db} Base de Datos Territorial</div>
+
+      <div className="tabs mb-12 fade-up">
+        {['resumen','hitos','recorridos','exportar'].map(t=>(
+          <button key={t} className={`tab-btn ${tab===t?'active':''}`} onClick={()=>setTab(t)}>
+            {t==='resumen'?'📊':t==='hitos'?'📍':t==='recorridos'?'🛤️':'📤'} {t.charAt(0).toUpperCase()+t.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'resumen' && (
+        <div className="fade-up">
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}}>
+            {[
+              {icon:'🛤️',val:recs.length,label:'Recorridos',color:'var(--sage)'},
+              {icon:'📍',val:hitos.length,label:'Hitos',color:'var(--gold)'},
+              {icon:'📷',val:media.length,label:'Archivos media',color:'var(--sky)'},
+              {icon:'🎙️',val:ents.length,label:'Entrevistas',color:'var(--clay)'}
+            ].map((s,i)=>(
+              <div key={i} className="card card-elevated" style={{textAlign:'center'}}>
+                <div style={{fontSize:28,marginBottom:4}}>{s.icon}</div>
+                <div style={{fontSize:28,fontWeight:700,color:s.color,fontFamily:"'JetBrains Mono',monospace"}}>{s.val}</div>
+                <div className="text-xs text-stone" style={{textTransform:'uppercase',letterSpacing:.8}}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="card mb-12">
+            <div className="form-label mb-8">DISTRIBUCIÓN POR CATEGORÍA</div>
+            {CATEGORIAS.map(cat => {
+              const count = hitos.filter(h=>h.categorias.includes(cat)).length;
+              const pct = hitos.length ? (count/hitos.length)*100 : 0;
+              return (
+                <div key={cat} style={{marginBottom:8}}>
+                  <div className="row-between text-xs mb-4">
+                    <span className={`cat-badge cat-${cat}`}>{cat}</span>
+                    <span className="text-stone">{count} hitos ({pct.toFixed(0)}%)</span>
+                  </div>
+                  <div className="progress-track">
+                    <div className="progress-fill" style={{width:`${pct}%`,background:cat==='cultural'?'var(--sage)':cat==='histórico'?'var(--clay)':cat==='artístico'?'#c8c8a0':cat==='patrimonial'?'var(--gold)':'var(--sky)'}}/>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="card">
+            <div className="form-label mb-8">RECORRIDOS RECIENTES</div>
+            {recs.slice(0,3).map(r=>(
+              <div key={r.id} className="row-between" style={{padding:'8px 0',borderBottom:'1px solid rgba(122,171,90,.08)'}}>
+                <div>
+                  <div style={{fontSize:13,color:'var(--cream)'}}>{r.nombre}</div>
+                  <div className="text-xs text-stone">{r.municipio} · {formatDate(r.fecha)}</div>
+                </div>
+                <span className={`status-badge status-${r.estado}`}>{r.estado}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === 'hitos' && (
+        <div className="fade-up">
+          <div className="row gap-8 mb-12">
+            <select className="form-select flex-1" style={{fontSize:12}} value={filterRec} onChange={e=>setFilterRec(e.target.value)}>
+              <option value="">Todos los recorridos</option>
+              {recs.map(r=><option key={r.id} value={r.id}>{r.nombre}</option>)}
+            </select>
+            <select className="form-select flex-1" style={{fontSize:12}} value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
+              <option value="">Todas las categorías</option>
+              {CATEGORIAS.map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div style={{overflowX:'auto'}}>
+            <table className="data-table">
+              <thead>
+                <tr><th>Hito</th><th>Categorías</th><th>Recorrido</th><th>Fecha</th></tr>
+              </thead>
+              <tbody>
+                {filteredHitos.map(h=>(
+                  <tr key={h.id}>
+                    <td><div style={{fontWeight:600,fontSize:12}}>{h.nombre}</div><div className="text-xs text-stone mono">{h.coords}</div></td>
+                    <td><div className="chip-group">{h.categorias.map(c=><span key={c} className={`cat-badge cat-${c}`} style={{fontSize:9}}>{c}</span>)}</div></td>
+                    <td style={{fontSize:11}}>{recs.find(r=>r.id===h.recorridoId)?.nombre||'—'}</td>
+                    <td style={{fontSize:11}} className="mono">{h.fechaRegistro?.slice(0,10)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filteredHitos.length===0 && <div className="text-center text-stone text-sm" style={{padding:20}}>Sin resultados</div>}
+          </div>
+        </div>
+      )}
+
+      {tab === 'recorridos' && (
+        <div className="fade-up">
+          <table className="data-table">
+            <thead>
+              <tr><th>Nombre</th><th>Municipio</th><th>Estado</th><th>Hitos</th></tr>
+            </thead>
+            <tbody>
+              {recs.map(r=>(
+                <tr key={r.id}>
+                  <td><div style={{fontWeight:600,fontSize:12}}>{r.nombre}</div><div className="text-xs text-stone">{r.zona}</div></td>
+                  <td style={{fontSize:11}}>{r.municipio}<br/><span className="text-stone">{r.departamento}</span></td>
+                  <td><span className={`status-badge status-${r.estado}`}>{r.estado}</span></td>
+                  <td className="text-lime mono" style={{fontWeight:700}}>{hitos.filter(h=>h.recorridoId===r.id).length}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {tab === 'exportar' && (
+        <div className="fade-up">
+          <div className="alert alert-warn mb-12">
+            ⚠️ Los datos se almacenan en el navegador (LocalStorage). Para persistencia permanente, exporta regularmente y carga en Airtable, Notion o Google Sheets.
+          </div>
+          <div className="card mb-12">
+            <div className="form-label mb-8">PLATAFORMAS DE ALMACENAMIENTO GRATUITO</div>
+            {[
+              {name:'Airtable', desc:'Base de datos visual con mapas y formularios. Plan gratuito: 1.200 registros.', icon:'📊'},
+              {name:'Notion', desc:'Wiki + base de datos. Ideal para documentar recorridos y hitos. 100% gratuito.', icon:'📝'},
+              {name:'Google Sheets', desc:'Importa el CSV directamente. Colaboración en tiempo real gratuita.', icon:'📋'},
+              {name:'Supabase', desc:'PostgreSQL gratuito + storage para fotos/videos. 500MB gratis.', icon:'🗄️'},
+              {name:'Firebase', desc:'Firestore + Storage gratis hasta 1GB. Ideal para apps en producción.', icon:'🔥'}
+            ].map((p,i)=>(
+              <div key={i} className="row-between" style={{padding:'10px 0',borderBottom:'1px solid rgba(122,171,90,.1)'}}>
+                <div className="row gap-8">
+                  <span style={{fontSize:20}}>{p.icon}</span>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:600,color:'var(--cream)'}}>{p.name}</div>
+                    <div className="text-xs text-stone">{p.desc}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="col gap-8">
+            <button className="btn btn-primary btn-full btn-lg" onClick={exportData}>⬇️ Exportar JSON completo</button>
+            <button className="btn btn-ghost btn-full" onClick={exportCSV}>📋 Exportar CSV (Google Sheets)</button>
+          </div>
+          <div className="sep"/>
+          <div className="card">
+            <div className="form-label mb-8">INSTRUCCIONES DE DESPLIEGUE GRATUITO</div>
+            <div style={{fontSize:12,color:'var(--mist)',lineHeight:1.8}}>
+              <strong style={{color:'var(--lime)'}}>1. GitHub Pages:</strong> Sube el index.html a un repositorio de GitHub y activa Pages en Settings. URL gratuita tipo usuario.github.io/proyecto<br/><br/>
+              <strong style={{color:'var(--lime)'}}>2. Netlify:</strong> Arrastra la carpeta al panel de Netlify. Deploy automático en segundos. SSL gratuito.<br/><br/>
+              <strong style={{color:'var(--lime)'}}>3. Vercel:</strong> Conecta tu repo de GitHub. Deployments automáticos con cada commit. 100GB bandwidth gratis.<br/><br/>
+              <strong style={{color:'var(--lime)'}}>4. Backend + BD:</strong> Usa Supabase (PostgreSQL) o Firebase (NoSQL) para almacenamiento en la nube con SDK JavaScript. Ambos tienen plan gratuito generoso.
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ADMIN SCREEN ─────────────────────────────────────────────────────────
+function AdminScreen() {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [pass, setPass] = useState('');
+  const [activeSection, setActiveSection] = useState('recorridos');
+  const recs = DB.getRecorridos();
+  const hitos = DB.getHitos();
+  const [editId, setEditId] = useState(null);
+
+  const login = () => { if (pass === 'admin123') setIsAdmin(true); };
+
+  const togglePublish = (recId) => {
+    const updated = recs.map(r => r.id===recId
+      ? {...r, estado: r.estado==='publicado'?'borrador':'publicado'}
+      : r);
+    DB.saveRecorridos(updated);
+    window.location.reload();
+  };
+
+  const deleteRec = (recId) => {
+    if (!confirm('¿Eliminar este recorrido y todos sus hitos?')) return;
+    DB.saveRecorridos(recs.filter(r=>r.id!==recId));
+    DB.saveHitos(hitos.filter(h=>h.recorridoId!==recId));
+    window.location.reload();
+  };
+
+  if (!isAdmin) return (
+    <div className="scroll-area">
+      <div className="section-title fade-up">{icons.admin} Panel Administrador</div>
+      <div className="card card-elevated fade-up" style={{maxWidth:320,margin:'40px auto',textAlign:'center'}}>
+        <div style={{fontSize:48,marginBottom:16}}>🔒</div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,marginBottom:8}}>Acceso Restringido</div>
+        <div className="text-sm text-stone mb-16">Ingresa la contraseña de administrador para editar y publicar recorridos.</div>
+        <div className="form-group">
+          <input className="form-input" type="password" placeholder="Contraseña" value={pass}
+            onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()}/>
+        </div>
+        <button className="btn btn-primary btn-full" onClick={login}>Ingresar</button>
+        <div className="text-xs text-stone mt-8">Demo: admin123</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="scroll-area">
+      <div className="admin-header fade-up">
+        <div className="row-between">
+          <div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,color:'var(--gold)'}}>⚙️ Panel Administrador</div>
+            <div className="text-xs text-stone">Gestión y publicación de contenido biocultural</div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={()=>setIsAdmin(false)}>Cerrar sesión</button>
+        </div>
+      </div>
+
+      <div className="tabs mb-12 fade-up">
+        {['recorridos','hitos','usuarios'].map(s=>(
+          <button key={s} className={`tab-btn ${activeSection===s?'active':''}`} onClick={()=>setActiveSection(s)}>
+            {s==='recorridos'?'🛤️ Recorridos':s==='hitos'?'📍 Hitos':'👥 Usuarios'}
+          </button>
+        ))}
+      </div>
+
+      {activeSection === 'recorridos' && (
+        <div className="fade-up">
+          <div className="alert alert-info mb-12">
+            👁️ Solo los recorridos marcados como <strong>"publicado"</strong> son visibles para todos los usuarios.
+          </div>
+          {recs.map(rec => (
+            <div key={rec.id} className="card card-elevated" style={{marginBottom:10}}>
+              <div className="row-between mb-8">
+                <div>
+                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,fontWeight:600}}>{rec.nombre}</div>
+                  <div className="text-xs text-stone">{rec.municipio} · {rec.departamento} · {formatDate(rec.fecha)}</div>
+                </div>
+                <span className={`status-badge status-${rec.estado}`}>{rec.estado}</span>
+              </div>
+              <div className="row gap-8 text-xs text-stone mb-12">
+                <span>📍 {hitos.filter(h=>h.recorridoId===rec.id).length} hitos</span>
+                <span>📏 {rec.distancia}km</span>
+                <span>👥 {rec.participantes} part.</span>
+              </div>
+              <div className="row gap-8">
+                <button className={`btn flex-1 btn-sm ${rec.estado==='publicado'?'btn-ghost':'btn-primary'}`} onClick={()=>togglePublish(rec.id)}>
+                  {rec.estado==='publicado' ? '🔒 Despublicar' : '📢 Publicar'}
+                </button>
+                <button className="btn btn-ghost btn-sm">✏️ Editar</button>
+                <button className="btn btn-danger btn-sm" onClick={()=>deleteRec(rec.id)}>🗑️</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {activeSection === 'hitos' && (
+        <div className="fade-up">
+          {hitos.map(h => {
+            const rec = recs.find(r=>r.id===h.recorridoId);
+            return (
+              <div key={h.id} className="card" style={{marginBottom:10}}>
+                <div className="row-between mb-4">
+                  <div style={{fontWeight:600,fontSize:13}}>{h.nombre}</div>
+                  <div className="chip-group">{h.categorias.map(c=><span key={c} className={`cat-badge cat-${c}`} style={{fontSize:9}}>{c}</span>)}</div>
+                </div>
+                <div className="text-xs text-stone mb-8">{rec?.nombre} · {h.fechaRegistro?.slice(0,10)}</div>
+                <div className="text-xs" style={{color:'var(--mist)',lineHeight:1.5}}>{h.descripcion.slice(0,120)}...</div>
+                <div className="row gap-8 mt-8">
+                  <button className="btn btn-ghost btn-sm flex-1">✏️ Editar</button>
+                  <button className="btn btn-danger btn-sm" onClick={()=>{
+                    if(confirm('¿Eliminar hito?')){
+                      DB.saveHitos(hitos.filter(x=>x.id!==h.id)); window.location.reload();
+                    }
+                  }}>🗑️</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {activeSection === 'usuarios' && (
+        <div className="fade-up">
+          <div className="alert alert-warn mb-12">
+            En la versión de producción integra autenticación con Supabase Auth o Firebase Auth para gestión completa de usuarios.
+          </div>
+          <div className="card mb-12">
+            <div className="form-label mb-8">ROLES Y PERMISOS</div>
+            {[
+              {rol:'Administrador',desc:'Acceso total: editar, publicar, eliminar, exportar',icon:'👑',color:'var(--gold)'},
+              {rol:'Investigador',desc:'Crear recorridos, agregar hitos, subir media, registrar entrevistas',icon:'🔬',color:'var(--sage)'},
+              {rol:'Colaborador',desc:'Solo agregar hitos y media a recorridos existentes',icon:'🤝',color:'var(--sky)'},
+              {rol:'Visitante',desc:'Solo ver recorridos publicados. Sin edición.',icon:'👤',color:'var(--stone)'}
+            ].map((r,i)=>(
+              <div key={i} className="row-between" style={{padding:'10px 0',borderBottom:'1px solid rgba(122,171,90,.08)'}}>
+                <div className="row gap-8">
+                  <span style={{fontSize:20}}>{r.icon}</span>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:600,color:r.color}}>{r.rol}</div>
+                    <div className="text-xs text-stone">{r.desc}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button className="btn btn-primary btn-full">+ Invitar colaborador</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── SPLASH / ONBOARDING ────────────────────────────────────────────────────
+function SplashScreen({ onEnter }) {
+  return (
+    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:32,background:'linear-gradient(160deg, #0a1a0a 0%, #1a2e1a 40%, #0a1a0a 100%)',position:'relative',overflow:'hidden'}}>
+      {/* Decorative elements */}
+      <div style={{position:'absolute',top:'10%',left:'5%',fontSize:60,opacity:.05,transform:'rotate(-15deg)'}}>🌿</div>
+      <div style={{position:'absolute',bottom:'15%',right:'5%',fontSize:80,opacity:.05,transform:'rotate(20deg)'}}>🌱</div>
+      <div style={{position:'absolute',top:'40%',right:'8%',fontSize:40,opacity:.04}}>🏔️</div>
+
+      <div style={{textAlign:'center',maxWidth:360,animation:'fadeUp .8s ease'}}>
+        <div style={{width:80,height:80,background:'linear-gradient(135deg,var(--sage),var(--lime))',borderRadius:20,display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,margin:'0 auto 24px',boxShadow:'0 8px 32px rgba(122,171,90,.4)'}}>🗺️</div>
+        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:700,lineHeight:1.2,marginBottom:12}}>
+          <span className="gradient-text">Mapeo Biocultural</span><br/>
+          <span style={{fontSize:20,color:'var(--mist)',fontWeight:400}}>Territorial</span>
+        </h1>
+        <p style={{fontSize:14,color:'var(--stone)',lineHeight:1.7,marginBottom:32}}>
+          Sistema de georreferenciación para documentar patrimonio cultural, histórico, artístico y natural de territorios campesinos e indígenas.
+        </p>
+
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:32}}>
+          {[
+            {icon:'🛤️',text:'Recorridos GPS'},
+            {icon:'📍',text:'Hitos culturales'},
+            {icon:'🎙️',text:'Entrevistas'},
+            {icon:'🗄️',text:'Base de datos'}
+          ].map((f,i)=>(
+            <div key={i} style={{background:'rgba(122,171,90,.08)',border:'1px solid rgba(122,171,90,.15)',borderRadius:10,padding:'12px 8px',textAlign:'center'}}>
+              <div style={{fontSize:22,marginBottom:4}}>{f.icon}</div>
+              <div style={{fontSize:11,color:'var(--mist)',fontWeight:600}}>{f.text}</div>
+            </div>
+          ))}
+        </div>
+
+        <button className="btn btn-primary btn-full btn-lg" style={{fontSize:16,letterSpacing:.5}} onClick={onEnter}>
+          🌿 Iniciar Exploración
+        </button>
+        <div style={{fontSize:11,color:'var(--stone)',marginTop:12}}>v1.0 · Funciona sin conexión · Datos en dispositivo</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ──────────────────────────────────────────────────────────────
+function App() {
+  const [screen, setScreen] = useState('splash');
+  const [activeTab, setActiveTab] = useState('map');
+  const [hitoRecId, setHitoRecId] = useState(null);
+  const gps = useGPS();
+
+  useEffect(() => {
+    if (!DB.getRecorridos().length) DEMO_DATA();
+  }, []);
+
+  const navItems = [
+    { id:'map', icon:'🗺️', label:'Mapa' },
+    { id:'hitos', icon:'📍', label:'Hitos' },
+    { id:'interview', icon:'🎙️', label:'Entrevistas' },
+    { id:'db', icon:'🗄️', label:'Datos' },
+    { id:'admin', icon:'⚙️', label:'Admin' }
+  ];
+
+  if (screen === 'splash') return <SplashScreen onEnter={() => setScreen('app')}/>;
+
+  const handleAddHito = (recId) => {
+    setHitoRecId(recId);
+    setActiveTab('hitos');
+  };
+
+  return (
+    <div className="app-shell">
+      {/* Top Bar */}
+      <div className="topbar">
+        <div className="topbar-logo">
+          <div className="logo-icon">🗺️</div>
+          <div>
+            <div className="logo-text">Mapeo Biocultural</div>
+            <div className="logo-sub">Territorial · {gps.tracking ? '● GPS activo' : 'Santander, CO'}</div>
+          </div>
+        </div>
+        <div className="topbar-actions">
+          {gps.tracking && <div className="rec-badge"><div className="rec-dot"/><span>{formatTime(gps.elapsed)}</span></div>}
+          <button className="btn btn-icon" onClick={() => setActiveTab('admin')}>⚙️</button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
+        {activeTab === 'map' && <MapScreen gps={gps} onAddHito={handleAddHito}/>}
+        {activeTab === 'hitos' && <HitosScreen recorridoIdProp={hitoRecId}/>}
+        {activeTab === 'interview' && <EntrevistasScreen/>}
+        {activeTab === 'db' && <DatabaseScreen/>}
+        {activeTab === 'admin' && <AdminScreen/>}
+      </div>
+
+      {/* Bottom Nav */}
+      <nav className="bottom-nav">
+        {navItems.map(item => (
+          <div key={item.id} className={`nav-item ${activeTab===item.id?'active':''}`}
+            onClick={() => { setActiveTab(item.id); if(item.id!=='hitos') setHitoRecId(null); }}>
+            <span className="icon">{item.icon}</span>
+            <span className="label">{item.label}</span>
+          </div>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
